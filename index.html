@@ -5,104 +5,141 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Will you be my Valentine?</title>
 
+  <!-- Confetti library -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 
   <style>
-    :root {
-      --bg1: #ffd6e7;
-      --bg2: #ffeef6;
-      --card: #ffffffcc;
-      --yes: #ff3b7a;
-      --yesHover: #ff1f68;
+    :root{
+      --bg1:#ffd6e7; --bg2:#ffeef6; --card:#ffffffcc;
+      --yes:#ff3b7a; --yesHover:#ff1f68; --text:#111827;
+    }
+    *{box-sizing:border-box;}
+    body{
+      margin:0; min-height:100svh; display:grid; place-items:center;
+      background:radial-gradient(circle at top,var(--bg2),var(--bg1));
+      font-family:system-ui,sans-serif; overflow:hidden; padding:16px; color:var(--text);
     }
 
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      min-height: 100svh;
-      display: grid;
-      place-items: center;
-      background: radial-gradient(circle at top, var(--bg2), var(--bg1));
-      font-family: system-ui, sans-serif;
-      overflow: hidden;
-      padding: 16px;
+    /* FULL-SCREEN CONFETTI CANVAS */
+    #confettiCanvas{
+      position:fixed; inset:0; width:100vw; height:100vh;
+      pointer-events:none; z-index:9999;
     }
 
-    #confettiCanvas {
-      position: fixed;
-      inset: 0;
-      width: 100vw;
-      height: 100vh;
-      pointer-events: none;
-      z-index: 9999;
+    .card{
+      width:min(720px,92vw); padding:26px 22px; background:var(--card);
+      backdrop-filter:blur(10px); border-radius:22px; text-align:center;
+      box-shadow:0 18px 60px rgba(0,0,0,.15); position:relative;
+      z-index:1;
+    }
+    .art{
+      width:min(260px,80vw); margin:0 auto 10px; display:block;
+      filter:drop-shadow(0 10px 14px rgba(0,0,0,.12));
+    }
+    #counter{font-size:14px; opacity:.7; margin-bottom:6px; user-select:none;}
+    h1{font-size:clamp(26px,4vw,44px); margin:12px 0 18px; letter-spacing:-0.2px;}
+
+    .button-zone{
+      position:relative; width:min(520px,92%); height:150px; margin:0 auto;
+      touch-action:none;
+    }
+    button{
+      position:absolute; top:50%; transform:translateY(-50%);
+      padding:16px 24px; font-size:18px; font-weight:800;
+      border-radius:999px; border:none; cursor:pointer;
+      box-shadow:0 10px 24px rgba(0,0,0,.14);
+      user-select:none; -webkit-tap-highlight-color:transparent;
+      transition:transform .12s ease, background .12s ease;
+      white-space:nowrap;
+    }
+    #yesBtn{left:18%; background:var(--yes); color:#fff;}
+    #yesBtn:hover{background:var(--yesHover);}
+    #noBtn{left:62%; background:#e5e7eb; color:#111827;}
+
+    .hint{margin-top:10px; font-size:13px; opacity:.75; user-select:none;}
+
+    .result{display:none; margin-top:18px; animation:pop .35s ease;}
+    .result h2{font-size:clamp(26px,4.2vw,42px); margin:10px 0 14px;}
+
+    @keyframes pop{from{transform:scale(.96);opacity:0;}to{transform:scale(1);opacity:1;}}
+
+    /* Subtle pulse after enough "No" attempts */
+    @keyframes pulse{
+      0%   { transform: translateY(-50%) scale(var(--s)); }
+      50%  { transform: translateY(-50%) scale(calc(var(--s) + 0.06)); }
+      100% { transform: translateY(-50%) scale(var(--s)); }
+    }
+    .pulse{animation:pulse .9s ease-in-out infinite;}
+
+    /* ----------------- CSS FIREWORKS (no external GIF) ----------------- */
+    .fireworks-wrap{
+      position:relative;
+      width:min(420px, 92vw);
+      height:240px;
+      margin:0 auto;
+      border-radius:18px;
+      overflow:hidden;
+      box-shadow:0 14px 40px rgba(0,0,0,.12);
+      background:
+        radial-gradient(circle at 20% 30%, rgba(255,255,255,.35), transparent 55%),
+        radial-gradient(circle at 80% 20%, rgba(255,255,255,.25), transparent 60%),
+        radial-gradient(circle at 50% 80%, rgba(255,255,255,.18), transparent 60%),
+        linear-gradient(180deg, rgba(17,24,39,.85), rgba(17,24,39,.65));
     }
 
-    .card {
-      width: min(720px, 92vw);
-      padding: 26px 22px;
-      background: var(--card);
-      backdrop-filter: blur(10px);
-      border-radius: 22px;
-      text-align: center;
-      box-shadow: 0 18px 60px rgba(0,0,0,.15);
+    .fw{
+      position:absolute;
+      left:var(--x); top:var(--y);
+      width:10px; height:10px;
+      transform:translate(-50%,-50%);
+      filter: drop-shadow(0 8px 10px rgba(0,0,0,.35));
     }
 
-    .art {
-      width: min(260px, 80vw);
-      margin: 0 auto 10px;
-      display: block;
+    /* Each firework is 1 dot + many "particles" via box-shadow */
+    .fw::before{
+      content:"";
+      position:absolute; inset:0;
+      width:10px; height:10px; border-radius:50%;
+      background:rgba(255,255,255,.9);
+      transform:scale(.2);
+      opacity:0;
+      animation: burst 1.3s ease-out infinite;
+      animation-delay: var(--d);
+      /* 12 particles around the center (no hard-coded colors; just light sparks) */
+      box-shadow:
+        0 -50px 0 rgba(255,255,255,.95),
+        35px -35px 0 rgba(255,255,255,.85),
+        50px 0 0 rgba(255,255,255,.9),
+        35px 35px 0 rgba(255,255,255,.8),
+        0 50px 0 rgba(255,255,255,.9),
+        -35px 35px 0 rgba(255,255,255,.85),
+        -50px 0 0 rgba(255,255,255,.9),
+        -35px -35px 0 rgba(255,255,255,.8),
+        18px -46px 0 rgba(255,255,255,.85),
+        46px 18px 0 rgba(255,255,255,.85),
+        -18px 46px 0 rgba(255,255,255,.85),
+        -46px -18px 0 rgba(255,255,255,.85);
     }
 
-    h1 {
-      font-size: clamp(26px, 4vw, 44px);
-      margin: 12px 0 18px;
+    @keyframes burst{
+      0%   { transform:scale(.15); opacity:0; filter:blur(0px); }
+      12%  { opacity:1; }
+      55%  { transform:scale(1); opacity:.95; }
+      100% { transform:scale(1.15); opacity:0; filter:blur(1px); }
     }
 
-    .button-zone {
-      position: relative;
-      width: min(520px, 92%);
-      height: 150px;
-      margin: 0 auto;
-      touch-action: none;
+    /* Gentle background twinkle */
+    .twinkle{
+      position:absolute; inset:0;
+      background:
+        radial-gradient(circle at 15% 55%, rgba(255,255,255,.28), transparent 40%),
+        radial-gradient(circle at 70% 70%, rgba(255,255,255,.20), transparent 45%),
+        radial-gradient(circle at 85% 40%, rgba(255,255,255,.20), transparent 45%),
+        radial-gradient(circle at 40% 25%, rgba(255,255,255,.22), transparent 45%);
+      opacity:.55;
+      animation: tw 2.6s ease-in-out infinite;
     }
-
-    button {
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      padding: 16px 24px;
-      font-size: 18px;
-      font-weight: 800;
-      border-radius: 999px;
-      border: none;
-      cursor: pointer;
-      box-shadow: 0 10px 24px rgba(0,0,0,.14);
-      transition: transform .12s ease, background .12s ease;
-    }
-
-    #yesBtn {
-      left: 18%;
-      background: var(--yes);
-      color: #fff;
-    }
-
-    #noBtn {
-      left: 62%;
-      background: #e5e7eb;
-      color: #111827;
-    }
-
-    .hint {
-      margin-top: 10px;
-      font-size: 13px;
-      opacity: .7;
-    }
-
-    .result {
-      display: none;
-      margin-top: 18px;
-    }
+    @keyframes tw{ 0%,100%{opacity:.40} 50%{opacity:.70} }
   </style>
 </head>
 
@@ -110,21 +147,69 @@
   <canvas id="confettiCanvas"></canvas>
 
   <main class="card">
-    <h1>samricho will you be my valentine?</h1>
+    <div id="counter">No attempts: 0</div>
+
+    <!-- ANIMAL WITH HEART -->
+    <svg class="art" viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="fur" x1="0" x2="1">
+          <stop offset="0" stop-color="#f7c7a1"/>
+          <stop offset="1" stop-color="#f2a97b"/>
+        </linearGradient>
+        <linearGradient id="heart" x1="0" x2="1">
+          <stop offset="0" stop-color="#ff4d7d"/>
+          <stop offset="1" stop-color="#ff1f68"/>
+        </linearGradient>
+      </defs>
+
+      <path d="M250 50 C250 33 270 25 282 38
+               C294 25 314 33 314 50
+               C314 78 282 92 282 106
+               C282 92 250 78 250 50Z"
+            fill="url(#heart)"/>
+
+      <path d="M90 120 C90 70 140 40 190 60
+               C240 40 290 70 290 120
+               C290 180 240 210 190 210
+               C140 210 90 180 90 120Z"
+            fill="url(#fur)"/>
+
+      <path d="M110 92 L95 55 L140 78 Z" fill="#f2a97b"/>
+      <path d="M270 92 L285 55 L240 78 Z" fill="#f2a97b"/>
+
+      <circle cx="160" cy="130" r="8"/>
+      <circle cx="220" cy="130" r="8"/>
+
+      <path d="M190 144 C186 144 182 148 182 152
+               C182 160 190 164 190 170
+               C190 164 198 160 198 152
+               C198 148 194 144 190 144Z"
+            fill="#ff7aa2"/>
+    </svg>
+
+    <h1>Samricho, be honest — will you be my valentine?</h1>
 
     <section class="button-zone" id="zone">
       <button id="yesBtn">Yes</button>
       <button id="noBtn">No</button>
     </section>
 
-    <div class="hint" id="hint">“No” seems a bit shy 😈</div>
+    <div class="hint" id="hint">Go on. Try saying no.</div>
 
     <section class="result" id="result">
-      <h2>YAY! 🎉</h2>
-      <img
-        src="https://media.giphy.com/media/26ufdipQqU2lhNA4g/giphy.gif"
-        width="300"
-      />
+      <h2>Good job baby — you made the right choice!</h2>
+
+      <div class="fireworks-wrap" aria-label="Fireworks animation">
+        <div class="twinkle"></div>
+
+        <!-- 6 fireworks bursts, staggered -->
+        <div class="fw" style="--x:18%;--y:55%;--d:0ms;"></div>
+        <div class="fw" style="--x:40%;--y:35%;--d:220ms;"></div>
+        <div class="fw" style="--x:62%;--y:60%;--d:420ms;"></div>
+        <div class="fw" style="--x:78%;--y:30%;--d:640ms;"></div>
+        <div class="fw" style="--x:28%;--y:75%;--d:860ms;"></div>
+        <div class="fw" style="--x:55%;--y:20%;--d:1080ms;"></div>
+      </div>
     </section>
   </main>
 
@@ -134,45 +219,135 @@
     const noBtn = document.getElementById("noBtn");
     const result = document.getElementById("result");
     const hint = document.getElementById("hint");
+    const counter = document.getElementById("counter");
 
+    /* ---------- CONFETTI ---------- */
     const confettiCanvas = document.getElementById("confettiCanvas");
-    confettiCanvas.width = window.innerWidth;
-    confettiCanvas.height = window.innerHeight;
 
-    const confettiInstance = confetti.create(confettiCanvas, { resize: true });
-
-    function fullScreenConfetti() {
-      confettiInstance({
-        particleCount: 250,
-        spread: 140,
-        origin: { x: 0.5, y: 0.5 }
-      });
+    function resizeConfettiCanvas() {
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      confettiCanvas.width = Math.floor(window.innerWidth * dpr);
+      confettiCanvas.height = Math.floor(window.innerHeight * dpr);
+      confettiCanvas.style.width = "100vw";
+      confettiCanvas.style.height = "100vh";
     }
 
+    resizeConfettiCanvas();
+    window.addEventListener("resize", resizeConfettiCanvas);
+    window.addEventListener("orientationchange", () => setTimeout(resizeConfettiCanvas, 150));
+
+    const confettiInstance = confetti.create(confettiCanvas, { resize: false, useWorker: true });
+
+    function fullScreenConfetti() {
+      const end = Date.now() + 1600;
+      (function frame() {
+        confettiInstance({
+          particleCount: 12,
+          spread: 90,
+          startVelocity: 45,
+          ticks: 180,
+          origin: { x: Math.random(), y: Math.random() * 0.3 }
+        });
+        if (Date.now() < end) requestAnimationFrame(frame);
+      })();
+
+      setTimeout(() => {
+        confettiInstance({
+          particleCount: 300,
+          spread: 140,
+          startVelocity: 60,
+          ticks: 220,
+          origin: { x: 0.5, y: 0.55 }
+        });
+      }, 300);
+    }
+
+    /* ---------- YES BUTTON GROWS + OPTIONAL PULSE ---------- */
     let yesScale = 1;
-    function growYes() {
-      yesScale += 0.1;
+    function setYesTransform() {
+      yesBtn.style.setProperty("--s", yesScale.toFixed(2));
       yesBtn.style.transform = `translateY(-50%) scale(${yesScale})`;
+    }
+    function growYes() {
+      yesScale = Math.min(2.2, yesScale + 0.1);
+      setYesTransform();
+    }
+    setYesTransform();
+
+    /* ---------- NO BUTTON RUNS AWAY (THROTTLED FOR SMOOTHNESS) ---------- */
+    let noCount = 0;
+    let lastEscapeAt = 0;
+    const ESCAPE_COOLDOWN_MS = 140;
+
+    function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
+
+    function moveNo(px, py) {
+      const now = Date.now();
+      if (now - lastEscapeAt < ESCAPE_COOLDOWN_MS) return;
+      lastEscapeAt = now;
+
+      const z = zone.getBoundingClientRect();
+      const b = noBtn.getBoundingClientRect();
+
+      let dx = (b.left + b.width / 2) - px;
+      let dy = (b.top + b.height / 2) - py;
+      let mag = Math.hypot(dx, dy) || 1;
+      dx /= mag; dy /= mag;
+
+      let newLeft = (b.left - z.left) + dx * 150;
+      let newTop  = (b.top - z.top) + dy * 150;
+
+      newLeft = clamp(newLeft, 0, z.width - b.width);
+      newTop  = clamp(newTop, 0, z.height - b.height);
+
+      noBtn.style.left = newLeft + "px";
+      noBtn.style.top = newTop + "px";
+      noBtn.style.transform = "none";
+
+      noCount++;
+      counter.textContent = `No attempts: ${noCount}`;
+
+      if (noCount === 2) hint.textContent = "Oh you thought you had options?";
+      if (noCount === 3) { hint.textContent = "Persistent. I respect it."; yesBtn.classList.add("pulse"); }
+      if (noCount === 5) hint.textContent = "Okay now you’re just lying to yourself.";
+
+      if (noCount === 3) noBtn.textContent = "You sure?";
+      if (noCount === 5) noBtn.textContent = "Lying.";
+      if (noCount === 7) noBtn.textContent = "Fine 😒";
+
+      if (noCount >= 9) {
+        noBtn.textContent = "Okay yes 🙄";
+        noBtn.style.left = "62%";
+        noBtn.style.top = "50%";
+        noBtn.style.transform = "translateY(-50%)";
+        noBtn.onclick = () => yesBtn.click();
+        return;
+      }
+
+      growYes();
     }
 
     zone.addEventListener("pointermove", e => {
-      const rect = noBtn.getBoundingClientRect();
+      const b = noBtn.getBoundingClientRect();
       const d = Math.hypot(
-        rect.left - e.clientX,
-        rect.top - e.clientY
+        (b.left + b.width / 2) - e.clientX,
+        (b.top + b.height / 2) - e.clientY
       );
-      if (d < 120) {
-        noBtn.style.left = Math.random() * 70 + "%";
-        growYes();
-      }
+      if (d < 140) moveNo(e.clientX, e.clientY);
     });
 
+    noBtn.addEventListener("click", e => e.preventDefault());
+
+    /* ---------- YES CLICK ---------- */
     yesBtn.addEventListener("click", () => {
       zone.style.display = "none";
       hint.style.display = "none";
+      counter.style.display = "none";
       result.style.display = "block";
+      resizeConfettiCanvas();
       fullScreenConfetti();
     });
   </script>
 </body>
 </html>
+
